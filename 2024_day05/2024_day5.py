@@ -1,5 +1,5 @@
-# filename = '2024_day5/test_input1.txt'
-filename = '2024_day5/input.txt'
+# filename = '2024_day05/test_input1.txt'
+filename = '2024_day05/input.txt'
 
 with open(filename) as f_in:
     lines = f_in.readlines()
