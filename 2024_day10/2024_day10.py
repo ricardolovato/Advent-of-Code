@@ -1,7 +1,8 @@
 import numpy as np
 import queue
 
-filename = '2024_day10/test_input1.txt'
+filename = '2024_day10/input.txt'
+# filename = '2024_day10/test_input3.txt'
 with open(filename) as f_in:
     lines = np.array([[v for v in line.strip()] for line in f_in.readlines()])
 
@@ -11,8 +12,6 @@ directions = [-1, 1j, 1, -1j]
 
 
 def within_bounds(location):
-    # loc_re = np.real(location)
-    # loc_im = np.imag(location)
     loc_re, loc_im = imag2coord(location)
 
     if loc_re < 0 or loc_re >= lines.shape[0]:
@@ -37,6 +36,7 @@ def get_edges(position):
     return edges
 
 def BFS(start_position):
+    paths = []
     explored = {}
     Q = queue.Queue()
     explored[start_position] = 0
@@ -44,14 +44,16 @@ def BFS(start_position):
     while not Q.empty():
         position = Q.get()
         if lines[imag2coord(position)] == '9':
-            return True
+            paths.append(position)
 
         for edge in get_edges(position):
-            if edge not in explored:
-                explored[edge] = 0
+            if edge not in explored or explored[edge] == len(paths):
+                explored[edge] = len(paths)
                 Q.put(edge)
+    return paths
 
-
-
+trails = {}
 for start_position in start_positions:
-    BFS(start_position)
+    trails[start_position] = BFS(start_position)
+print(trails)
+print(sum([len(v) for k, v in trails.items()]))
