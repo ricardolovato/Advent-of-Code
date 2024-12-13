@@ -23,11 +23,11 @@ def within_bounds(location):
 def j2c(p):
     return int(np.real(p)), int(np.imag(p))
 
-def get_edges(position):
+def get_edges(position, b_ignore_bounds=False):
     edges = []
     for direction in [-1, 1j, 1, -1j]:
         edge = position + direction
-        if not within_bounds(edge):
+        if not b_ignore_bounds and not within_bounds(edge):
             continue
 
         value = crop_map[j2c(edge)]
@@ -52,6 +52,25 @@ def BFS(start_position, plant):
                 Q.put(edge)
     return paths
 
+def edge_search(start_position, edges):
+    paths = []
+    explored = {}
+    Q = queue.Queue()
+    explored[start_position] = 0
+    Q.put(start_position)
+    while not Q.empty():
+        position = Q.get()
+        paths.append(position)
+        # for edge in get_edges(position, True):
+        for direction in [-1, 1j, 1, -1j]:
+            edge = position + direction
+            if edge not in explored and edge in edges:
+                explored[edge] = len(paths)
+                Q.put(edge)
+
+    return paths
+
+
 def show_crops(crop_map, crop_start):
     for start_location, plant_locations in crop_start.items():
         current_map = np.full(crop_map.shape, '.')
@@ -60,43 +79,81 @@ def show_crops(crop_map, crop_start):
         print_grid(current_map)
         print()
 
-filename = '2024_day12/test_input1.txt'
-# filename = '2024_day12/test_input2.txt'
-filename = '2024_day12/test_input3.txt'
-filename = '2024_day12/input.txt'
+# filename = '2024_day12/test_input1.txt'
+filename = '2024_day12/test_input2.txt'
+# filename = '2024_day12/test_input3.txt'
+# filename = '2024_day12/input.txt'
 
 with open(filename) as f_in:
     crop_map = np.array([[v for v in line.strip()] for line in f_in.readlines()])
 
+# Use BFS to find all connected tiles
 crop_start = {}
 visited = []
 for iX in range(crop_map.shape[0]):
     for iY in range(crop_map.shape[1]):
         location = iX + 1j*iY
         if location in visited:
+            # Skip this tile if we've already visited it in a previous search
             continue
 
         crop_start[location] = BFS(location, crop_map[iX, iY])
         visited += crop_start[location]
 
+show_crops(crop_map, crop_start)
+
+# Calculate the perimeter by checking adjacent cells
 price = 0
 for start_location, plant_locations in crop_start.items():
     num_perimeters = 0
     for plant_location in plant_locations:
-        # edges = get_edges(plant_location)
-        # edges = []
         for direction in [-1, 1j, 1, -1j]:
             edge = plant_location + direction
             if not within_bounds(edge):
+                # Out of bounds counts as an edge
                 num_perimeters += 1
                 continue
 
             value = crop_map[j2c(edge)]
             if value != crop_map[j2c(plant_location)]:
-                # edges.append(edge)
+                # If the adjacent cell isn't the same plant type, it is a perimeter
                 num_perimeters += 1
     current_price = num_perimeters * len(plant_locations)
     print(f'{crop_map[j2c(start_location)]}: Perimeter {num_perimeters}, Area {len(plant_locations)}, Price {current_price}')
 
     price += current_price
 print(f'Total price: {price}')
+
+
+
+
+price = 0
+for start_location, plant_locations in crop_start.items():
+    perimeters = []
+    for plant_location in plant_locations:
+        for direction in [-1, 1j, 1, -1j]:
+            edge = plant_location + direction
+            if not within_bounds(edge):
+                # Out of bounds counts as an edge
+                perimeters.append(edge)
+                continue
+            value = crop_map[j2c(edge)]
+            if value != crop_map[j2c(plant_location)]:
+                # If the adjacent cell isn't the same plant type, it is a perimeter
+                perimeters.append(edge)
+
+    visited = {}
+    consecutive_perimeters = []
+    while perimeters:
+        loc = perimeters[0]
+        # print([[p for p in perimeters if np.real(p) == f(loc)] for f in [np.real, np.imag]])
+        edge = edge_search(loc, perimeters)
+        consecutive_perimeters.append(edge)
+        for e in edge:
+            visited[e] = 1
+        perimeters = [p for p in perimeters if p not in visited]
+
+    print(f'{crop_map[j2c(start_location)]}: {[len(p) for p in consecutive_perimeters]}')
+
+
+
