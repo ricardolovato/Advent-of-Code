@@ -54,23 +54,42 @@ def BFS(start_position, plant):
 
 def edge_search(start_position, edges):
     paths = []
-    for current_direction in [[-1, 1], [1j, -1j]]:
-        p = []
-        explored = {}
-        Q = queue.Queue()
-        explored[start_position] = 0
-        Q.put(start_position)
-        while not Q.empty():
-            position = Q.get()
-            p.append(position)
-            for direction in current_direction:
-            # for direction in [-1, 1j, 1, -1j]:
-                edge = position + direction
-                if edge not in explored and edge in edges:
-                    explored[edge] = len(p)
-                    Q.put(edge)
-        paths.append(p)
+    # for current_direction in [[-1, 1], [1j, -1j]]:
+    #     p = []
+    explored = {}
+    Q = queue.Queue()
+    explored[start_position] = 0
+    Q.put(start_position)
+    while not Q.empty():
+        position = Q.get()
+        paths.append(position)
+        # for direction in current_direction:
+        for direction in [-1, 1j, 1, -1j]:
+            edge = position + direction
+            if edge not in explored and edge in edges:
+                explored[edge] = len(paths)
+                Q.put(edge)
     return paths
+
+# def edge_search(start_position, edges):
+#     paths = []
+#     for current_direction in [[-1, 1], [1j, -1j]]:
+#         p = []
+#         explored = {}
+#         Q = queue.Queue()
+#         explored[start_position] = 0
+#         Q.put(start_position)
+#         while not Q.empty():
+#             position = Q.get()
+#             p.append(position)
+#             for direction in current_direction:
+#             # for direction in [-1, 1j, 1, -1j]:
+#                 edge = position + direction
+#                 if edge not in explored and edge in edges:
+#                     explored[edge] = len(p)
+#                     Q.put(edge)
+#         paths.append(p)
+#     return paths
 
 
 def show_crops(crop_map, crop_start):
@@ -87,11 +106,11 @@ def show_boundary(crop_map, start_location, plant_locations, perimeter):
     for plant_location in plant_locations:
         current_map[j2c(plant_location + (1+1j))] = crop_map[j2c(plant_location)]
 
-    print_grid(current_map)
-    print()
+    # print_grid(current_map)
+    # print()
 
     for perimeter_location in perimeter:
-        current_map[j2c(perimeter_location + (1 + 1j))] = 'X'
+        current_map[j2c(perimeter_location + (1 + 1j))] = '#'
 
     print_grid(current_map)
     print()
@@ -110,8 +129,9 @@ def is_concave(edge_location, plant, plant_locations):
                          [1, -1, -1j],
                          [1, -1j, 1j],
                          [-1, -1j, 1j],]
+    surrounded_directions = [[-1, 1, -1j, 1j]]
 
-    for iD, direction in enumerate([pocket_directions, concave_directions,]):
+    for iD, direction in enumerate([surrounded_directions, pocket_directions, concave_directions,]):
         for concave_direction in direction:
             b_is_concave = True
             for p in concave_direction:
@@ -123,11 +143,14 @@ def is_concave(edge_location, plant, plant_locations):
                     break
             if b_is_concave:
                 if iD == 0:
-                    print(f'{edge_location}: pocket')
-                    return True, 2
+                    # print(f'{edge_location}: surrounded on 4 sides')
+                    return True, 4
+                elif iD == 1:
+                    # print(f'{edge_location}: pocket')
+                    return True, 3
                 else:
-                    print(f'{edge_location}: concave')
-                    return True, 1
+                    # print(f'{edge_location}: concave')
+                    return True, 2
 
     return False, 0
 
@@ -155,14 +178,42 @@ def is_top_bottom(edge_location, plant, plant_locations):
                 b_is_concave = False
                 break
         if b_is_concave:
-            print(f'{edge_location}: top bottom')
+            # print(f'{edge_location}: top bottom')
             return True
 
 
+def remove_adjacent(corner_point, points, plant, plant_locations):
+    non_adj = []
+    for point in points:
+        if point == corner_point:
+            non_adj.append(point)
+            continue
+
+        # Don't count corners, evne if they are adjacent
+        b_concave, count = is_concave(point, plant, plant_locations)
+        if b_concave:
+            non_adj.append(point)
+            continue
+
+        b_adjacent = False
+        for direction in [-1, 1j, 1, -1j]:
+            edge = corner_point + direction
+            # if not within_bounds(edge):
+            #     continue
+            if edge == point:
+                b_adjacent = True
+                break
+        if not b_adjacent:
+            non_adj.append(point)
+    return non_adj
+
+
 filename = '2024_day12/test_input1.txt'
-filename = '2024_day12/test_input2.txt'
+# filename = '2024_day12/test_input2.txt'
 filename = '2024_day12/test_input3.txt'
-filename = '2024_day12/test_input4.txt'
+# filename = '2024_day12/test_input4.txt'
+# filename = '2024_day12/test_input5.txt'
+# filename = '2024_day12/test_input6.txt'
 # filename = '2024_day12/input.txt'
 
 with open(filename) as f_in:
@@ -177,6 +228,9 @@ for iX in range(crop_map.shape[0]):
         if location in visited:
             # Skip this tile if we've already visited it in a previous search
             continue
+
+        # if crop_map[iX, iY] == '.':
+        #     continue
 
         crop_start[location] = BFS(location, crop_map[iX, iY])
         visited += crop_start[location]
@@ -208,18 +262,59 @@ print(f'Total price: {price}\n')
 
 price = 0
 for start_location, plant_locations in crop_start.items():
+    plant = crop_map[j2c(start_location)]
     perimeters = []
     for plant_location in plant_locations:
         for direction in [-1, 1j, 1, -1j]:
             edge = plant_location + direction
             if not within_bounds(edge):
                 # Out of bounds counts as an edge
-                perimeters.append(edge)
+                if edge not in perimeters:
+                    perimeters.append(edge)
                 continue
             value = crop_map[j2c(edge)]
             if value != crop_map[j2c(plant_location)]:
                 # If the adjacent cell isn't the same plant type, it is a perimeter
-                perimeters.append(edge)
+                if edge not in perimeters:
+                    perimeters.append(edge)
+
+    # TODO: step through perimeters points and assign number of + edges based
+    # on what the surrounding tiles are ?
+    show_boundary(crop_map, start_location, plant_locations, perimeters)
+
+    # corners = []
+    # for edge_location in perimeters:
+    #     b_concave, count = is_concave(edge_location, plant, plant_locations)
+    #     if b_concave:
+    #         corners.append(edge_location)
+    #
+    # if corners != []:
+    #     condensed_perimeters = list(perimeters)
+    #     for corner in corners:
+    #         condensed_perimeters = remove_adjacent(corner, condensed_perimeters, plant, plant_locations)
+    #         # for p in remove_adjacent(corner, perimeters, plant, plant_locations):
+    #         #     condensed_perimeters.append(p)
+    #     perimeters = list(set(condensed_perimeters))
+
+    # # Do BFS again to check consecutive edges
+    # visited = {}
+    # consecutive_perimeters = []
+    # while perimeters:
+    #     loc = perimeters[0]
+    #     edges = edge_search(loc, perimeters)
+    #     for iE, edge in enumerate(edges):
+    #         b_all_ones = all(v == 1 for v in [len(edge) for edge in edges])
+    #         if b_all_ones and iE == 0:
+    #             # We only need 1 of the paths if both of the paths are length 1
+    #             continue
+    #
+    #         if not b_all_ones and len(edge) == 1:
+    #             continue
+    #         consecutive_perimeters.append(edge)
+    #         for e in edge:
+    #             visited[e] = 1
+    #     # Is there a better way to do this? Probably doesnt matter for small sets
+    #     perimeters = [p for p in perimeters if p not in visited]
 
     # Do BFS again to check consecutive edges
     visited = {}
@@ -227,25 +322,19 @@ for start_location, plant_locations in crop_start.items():
     while perimeters:
         loc = perimeters[0]
         edges = edge_search(loc, perimeters)
-        for iE, edge in enumerate(edges):
-            b_all_ones = all(v == 1 for v in [len(edge) for edge in edges])
-            if b_all_ones and iE == 0:
-                # We only need 1 of the paths if both of the paths are length 1
-                continue
-
-            if not b_all_ones and len(edge) == 1:
-                continue
-            consecutive_perimeters.append(edge)
-            for e in edge:
-                visited[e] = 1
+        # for iE, edge in enumerate(edges):
+        consecutive_perimeters.append(edges)
+        for e in edges:
+            visited[e] = 1
         # Is there a better way to do this? Probably doesnt matter for small sets
         perimeters = [p for p in perimeters if p not in visited]
 
-    show_boundary(crop_map, start_location, plant_locations, [_p for p in consecutive_perimeters for _p in p])
+    # show_boundary(crop_map, start_location, plant_locations, [_p for p in consecutive_perimeters for _p in p])
+    # for perimeter in consecutive_perimeters:
+    #     show_boundary(crop_map, start_location, plant_locations, perimeter)
     num_edges = len([len(p) for p in consecutive_perimeters])
 
     # Check for corner points
-    plant = crop_map[j2c(start_location)]
     corners = []
     for edge_location in [_p for p in consecutive_perimeters for _p in p]:
         b_concave, count = is_concave(edge_location, plant, plant_locations)
@@ -253,19 +342,67 @@ for start_location, plant_locations in crop_start.items():
         if b_concave:
             corners.append(edge_location)
 
+    # for consecutive_points in consecutive_perimeters:
+    #     corner_adj = [len(remove_adjacent(corner, consecutive_points, plant, plant_locations)) for corner in corners if corner not in consecutive_points]
+    #     if any(l != len(consecutive_points) for l in corner_adj):
+    #         print(consecutive_points)
+    #         num_edges -= 1
+
     # Check for top/bottom points
+    # num_edges = len(consecutive_perimeters)
+    num_edges = 0
     for consecutive_points in consecutive_perimeters:
-        # if len(consecutive_points) == 2:
-        #     if any(p in corners for p in consecutive_points):
-        #         print(f'{consecutive_points}: length 2 with corner')
-        #         num_edges -= 1
+        show_boundary(crop_map, start_location, plant_locations, consecutive_points)
+        corners = []
         for point in consecutive_points:
-            if is_top_bottom(point, plant, plant_locations):
+            b_concave, count = is_concave(point, plant, plant_locations)
+            if b_concave:
+                corners.append(point)
+
+                print(f'\tAdding {count} corner edges')
+                num_edges += count
+                continue
+
+            # if is_top_bottom(point, plant, plant_locations):
+            #     num_edges += 1
+            #     print(f'\tAdding 1 top/bottom edges')
+            #     break
+
+        # Count how many corners lie on the same plane so they
+        # aren't double-counted
+        # need: 8
+        # have: 12
+        # sub 6
+        overlaps = sum([len(corners) - len(list(set([f(p) for p in corners]))) for f in [np.real, np.imag]])
+        print(f'\tsubtracting {overlaps} overlaps')
+
+        if len(corners) == 1:
+            corner = corners[0]
+            if [p for p in consecutive_points if np.real(p) != np.real(corner) and np.imag(p) != np.imag(corner)] != []:
+                print(f'\tadding edge L corner @ {consecutive_points}')
                 num_edges += 1
-                break
-    # break
+
+        elif len(corners) > 1:
+            # print(f'Adding 1 edge for {len(corners)} in one segment')
+            # num_edges += 1
+
+            non_adj = [[p for p in consecutive_points if np.real(p) != np.real(corner) and np.imag(p) != np.imag(corner)] for corner in corners]
+            all_non_adj = set([_p for p in non_adj for _p in p])
+
+            in_all = []
+            for p in all_non_adj:
+                if all(p in pts for pts in non_adj):
+                    in_all.append(p)
+            print(f'\tAdding {len(in_all)} non-corner connected points @ {in_all}')
+            num_edges += len(in_all)
+        if not corners:
+            print('\tno corners, regular edge +1')
+            num_edges += 1
+
 
     current_price = num_edges * len(plant_locations)
     price += current_price
     print(f'{plant}: Area {len(plant_locations)}, Perimeter {num_edges}, Price {current_price}')
 print(f'Total price: {price}')
+
+# 780309 too low
