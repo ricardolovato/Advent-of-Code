@@ -42,22 +42,38 @@ def show_map(start, end, boundaries):
 
     show_grid(grid)
 
-def BFS(start_position, end_position):
-    paths = []
-    explored = {}
-    Q = queue.Queue()
-    explored[start_position] = 0
-    Q.put(start_position)
-    while not Q.empty():
-        position = Q.get()
-        if position == end_position:
-            paths.append(position)
+# def BFS(start_position, end_position):
+#     paths = []
+#     explored = {}
+#     Q = queue.Queue()
+#     explored[start_position] = 0
+#     Q.put(start_position)
+#     while not Q.empty():
+#         position = Q.get()
+#         if position == end_position:
+#             paths.append(position)
+#
+#         for edge in get_edges(position):
+#             if edge not in explored or explored[edge] == len(paths):
+#                 explored[edge] = len(paths)
+#                 Q.put(edge)
+#     return paths
 
-        for edge in get_edges(position):
-            if edge not in explored or explored[edge] == len(paths):
-                explored[edge] = len(paths)
-                Q.put(edge)
-    return paths
+def get_adjacent(current_position):
+    adjacent = []
+    for direction in [-1, 1, -1j, 1j]:
+        next_position = current_position + direction
+        if within_bounds(next_position, boundaries):
+            adjacent.append([next_position, direction])
+    return adjacent
+
+def DFS(current_position, current_direction, end_position, explored):
+    explored.append([current_position, current_direction])
+
+    adjacent_cells = get_adjacent(current_position)
+    for (adjacent_cell, adjacent_direction) in adjacent_cells:
+        if adjacent_cell not in explored:
+            DFS(adjacent_cell, adjacent_direction, end_position, explored)
 
 
 # Complex to coordinate
