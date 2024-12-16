@@ -10,6 +10,10 @@ def show_grid(grid):
     for iR, row in enumerate(grid):
         print(f'{iR:^2} | ', end='')
         print(''.join([f'{c:^3}' for c in row]))
+    print('     ', end='')
+    print(''.join(['---' for i in range(grid.shape[1])]) + '-')
+    print('     ', end='')
+    print(''.join([f'{i:^3}' for i in range(grid.shape[1])]))
 
 
 def within_bounds_original(location, boundaries):
@@ -64,12 +68,6 @@ def show_map(robot, boundaries, boxes):
         for iY in range(grid.shape[1]):
             if not within_bounds(iX + 1j*iY, boundaries):
                 grid[j2c(iX + 1j*iY)] = '#'
-    # grid[0, :] = '#'
-    # grid[1, :] = '#'
-    # grid[grid_shape[0] - 1, :] = '#'
-    # grid[grid_shape[0] - 2, :] = '#'
-    # grid[:, 0] = '#'
-    # grid[:, grid_shape[1] - 1] = '#'
 
     show_grid(grid)
 
@@ -103,13 +101,15 @@ def get_vertical_boxes(current_position, action_direction):
                        action_direction=action_direction)
         right = get_vertical_boxes(current_position=[p + action_direction - 1j for p in current_position],
                        action_direction=action_direction)
+        center = get_vertical_boxes(current_position=[p + action_direction for p in current_position],
+                       action_direction=action_direction)
         # return [v for v in [current_position, left, right] if v is not None]
-        return [current_position] + (left or []) + (right or [])
+        return [current_position] + (left or []) + (right or []) + (center or [])
 
     return []
 filename = '2024_day15/test_input1.txt'
-filename = '2024_day15/test_input2.txt'
-# filename = '2024_day15/input.txt'
+# filename = '2024_day15/test_input2.txt'
+filename = '2024_day15/input.txt'
 with open(filename) as f_in:
     lines = f_in.readlines()
 
@@ -133,78 +133,47 @@ robot = np.real(robot) + 2j * np.imag(robot)
 
 action_directions = {'^':-1, '>':1j, 'v':1, '<':-1j}
 
-robot = 6 + 7j
-actions = ['>', '^', '>', '^', '>', 'v'][::-1]
 
-robot = 2+10j
-actions = ['v']
-boxes = [#[8+10j, 8+11j],
-         [3+10j, 3+11j],
-         [4+9j, 4+10j], [4+11j, 4+12j],
-         [5+8j, 5+9j], [5+10j, 5+11j],[5+12j, 5+13j],
-         [6+7j, 6+8j], [6+9j, 6+10j],[6+11j, 6+12j],[6+13j, 6+14j],
-]
 while actions:
-    show_map(robot, boundaries, boxes)
-    # break
-    action = actions.pop()
-
-    # robot = 7 + 3j
-    # action = '^'
     # show_map(robot, boundaries, boxes)
+    action = actions.pop()
 
     action_direction = action_directions[action]
     next_position = robot + action_direction
     print(f'Move {action}: {robot} -> {next_position}')
 
-    current_box_position = get_next_box_positions(action, next_position)[0]
-
-    next_box = get_vertical_boxes(current_box_position, action_direction)
-
-    # if action == '<':
-    #     box_positions = [[next_position - 1j, next_position]]
-    # elif action == '^':
-    #     box_positions = [[next_position, next_position + 1j],
-    #                      [next_position - 1j, next_position]]
-    # elif action == '>':
-    #     box_positions = [[next_position, next_position + 1j]]
-    # elif action == 'v':
-    #     box_positions = [[next_position - 1j, next_position],
-    #                      [next_position, next_position + 1j]]
-    # b_in_boxes = [p in boxes for p in box_positions]
+    current_box_position = get_next_box_positions(action, next_position)
 
     # Next position is a box
     if current_box_position:
-        # current_box_position = box_positions[b_in_boxes.index(True)]
-        if action in ['<', '>']:
-            next_box_position = [p + 2 * action_direction for p in current_box_position]
-        else:
-            next_box_position = get_next_box_positions(action, current_box_position)
-            # while next_box_position
+        current_box_position = current_box_position[0]
+        next_box_position = [p + action_direction for p in current_box_position]
+        boxes_to_move = [[current_box_position, next_box_position, boxes.index(current_box_position)]]
 
-        boxes_to_move = [[current_box_position, boxes.index(current_box_position)]]
         if action in ['<', '>']:
-            while next_box_position in boxes:
-                boxes_to_move.append([next_box_position, boxes.index(next_box_position)])
-
-                next_box_position = [p + 2 * action_direction for p in next_box_position]
+            next_box = [p + 2 * action_direction for p in current_box_position]
+            while next_box in boxes:
+                boxes_to_move.append([next_box,
+                                      [p + action_direction for p in next_box],
+                                      boxes.index(next_box)])
+                next_box = [p + 2 * action_direction for p in next_box]
         else:
-            while next_box_position:
-                pass
-            # else:
-            #     next_box_position = get_next_box_positions(action, next_box_position)
+            next_boxes = get_vertical_boxes(current_box_position, action_direction)
+            while next_boxes:
+                next_box = next_boxes.pop()
+                boxes_to_move.append([next_box,
+                                      [b + action_direction for b in next_box],
+                                      boxes.index(next_box)])
 
         print(f'\tMoving {len(boxes_to_move)} boxes: {[b[0] for b in boxes_to_move]}')
-        if action in ['<', '>']:
-            # Fix for 2 steps in horizontal
-            next_box_position = [p - action_direction for p in next_box_position]
 
-        if within_bounds(next_box_position, boundaries):
+        if all([within_bounds(next_box_position, boundaries) for _, next_box_position, _ in boxes_to_move]):
+            # if within_bounds(next_box_position, boundaries):
             while boxes_to_move:
-                box, box_idx = boxes_to_move.pop()
-                print(f'\tMoving box from {box} to {next_box_position}')
+                current_box_position, next_box_position, box_idx = boxes_to_move.pop()
+                print(f'\tMoving box from {current_box_position} to {next_box_position}')
                 boxes[box_idx] = next_box_position
-                next_box_position = [p - scale * action_direction for p in next_box_position]
+                next_box_position = [p - action_direction for p in next_box_position]
             print(f'\tMoving robot from {robot} to {next_position}')
             robot = next_position
         else:
@@ -220,6 +189,6 @@ while actions:
     robot = next_position
     # break
 #
-# show_map(robot, boundaries, boxes)
-# gps = sum([np.real(box) * 100 + np.imag(box) for box in boxes])
-# print(f'GPS: {gps}')
+show_map(robot, boundaries, boxes)
+gps = sum([np.real(box[0]) * 100 + np.imag(box[0]) for box in boxes])
+print(f'GPS: {gps}')
