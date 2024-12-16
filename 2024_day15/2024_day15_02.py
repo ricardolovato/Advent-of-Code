@@ -98,16 +98,15 @@ def get_next_box_positions(action, next_positions):
     return None
 
 def get_vertical_boxes(current_position, action_direction):
-    # if current_position not in boxes:
-    #     return None
-
     if current_position in boxes:
         left = get_vertical_boxes(current_position=[p + action_direction + 1j for p in current_position],
                        action_direction=action_direction)
         right = get_vertical_boxes(current_position=[p + action_direction - 1j for p in current_position],
                        action_direction=action_direction)
-        return [v for v in [current_position, left, right] if v is not None]
+        # return [v for v in [current_position, left, right] if v is not None]
+        return [current_position] + (left or []) + (right or [])
 
+    return []
 filename = '2024_day15/test_input1.txt'
 filename = '2024_day15/test_input2.txt'
 # filename = '2024_day15/input.txt'
