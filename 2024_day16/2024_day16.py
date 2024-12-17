@@ -94,6 +94,7 @@ def rebuild_path(current, start_location, came_from, path, all_paths):
         return
 
     previous = came_from[current]
+    # for previous in [(node, direction) for (node, direction), _ in came_from.items() if node == current_location]:
     if previous is not None:
         rebuild_path(previous, start_location, came_from, path, all_paths)
 
