@@ -29,9 +29,12 @@ def within_bounds(location, boundaries):
     return True
 
 
-def show_map(start, end, boundaries):
+def show_map(start, end, boundaries, path=None):
     grid = np.full((grid_shape[0], grid_shape[1]), '.')
 
+    if path is not None:
+        for p in path:
+            grid[j2c(p[0])] = '*'
     grid[j2c(start)] = 'S'
     grid[j2c(end)] = 'E'
 
@@ -40,24 +43,9 @@ def show_map(start, end, boundaries):
             if not within_bounds(iX + 1j*iY, boundaries):
                 grid[j2c(iX + 1j*iY)] = '#'
 
+
     show_grid(grid)
 
-# def BFS(start_position, end_position):
-#     paths = []
-#     explored = {}
-#     Q = queue.Queue()
-#     explored[start_position] = 0
-#     Q.put(start_position)
-#     while not Q.empty():
-#         position = Q.get()
-#         if position == end_position:
-#             paths.append(position)
-#
-#         for edge in get_edges(position):
-#             if edge not in explored or explored[edge] == len(paths):
-#                 explored[edge] = len(paths)
-#                 Q.put(edge)
-#     return paths
 
 def get_adjacent(current_position):
     adjacent = []
@@ -67,13 +55,47 @@ def get_adjacent(current_position):
             adjacent.append([next_position, direction])
     return adjacent
 
-def DFS(current_position, current_direction, end_position, explored):
-    explored.append([current_position, current_direction])
 
-    adjacent_cells = get_adjacent(current_position)
-    for (adjacent_cell, adjacent_direction) in adjacent_cells:
-        if adjacent_cell not in explored:
-            DFS(adjacent_cell, adjacent_direction, end_position, explored)
+def traverse_grid(start_location, end_location):
+    frontier = queue.Queue()
+    frontier.put((start_location, None))
+    came_from = {(start_location, None):None}
+    while not frontier.empty():
+        current_location, current_direction = frontier.get()
+        if current_location == end_location:
+            continue
+
+        for next_location, next_direction in get_adjacent(current_location):
+            if (next_location, next_direction) not in came_from:
+                # current_direction = next_location - current_location
+                came_from[(next_location, next_direction)] = (current_location, current_direction)
+                frontier.put((next_location, next_direction))
+
+    end_locations = [(node, direction) for (node, direction), _ in came_from.items() if node == end_location]
+    paths = []
+    for end in end_locations:
+        # current_node = end_location
+        # current_direction = end_direction
+        # path = [(current_node, end_direction)]
+        # while current_node != start_location:
+        #     current_node, current_direction = came_from[(current_node, current_direction)]
+        #     path.append((current_node, current_direction))
+        # paths.append(path)
+        rebuild_path(end, start_location, came_from, [], paths)
+
+    return paths
+
+def rebuild_path(current, start_location, came_from, path, all_paths):
+    current_location, current_direction = current
+    path.append((current_location, current_direction))
+
+    if current_location == start_location:
+        all_paths.append(path)
+        return
+
+    previous = came_from[current]
+    if previous is not None:
+        rebuild_path(previous, start_location, came_from, path, all_paths)
 
 
 # Complex to coordinate
@@ -91,5 +113,9 @@ grid_shape = grid.shape
 
 start, end, boundaries = [[int(x) + 1j*int(y) for x, y in zip(*np.where(np.isin(grid, c)))] for c in ['S', 'E', '#']]
 boundaries = [b for b in boundaries if within_bounds(b, [])]
+start, end = start[0], end[0]
 show_map(start, end, boundaries)
 
+paths = traverse_grid(start, end)
+for path in paths:
+    show_map(start, end, boundaries, path )
