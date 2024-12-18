@@ -55,7 +55,25 @@ def get_adjacent(current_position):
             adjacent.append([next_position, direction])
     return adjacent
 
+# def traverse_grid(start_location, end_location):
+#     frontier = queue.Queue()
+#     frontier.put((start_location, None))
+#     came_from = {(start_location, None):None}
+#     while not frontier.empty():
+#         current_location, current_direction = frontier.get()
+#         if current_location == end_location:
+#             continue
+#
+#         for next_location, next_direction in get_adjacent(current_location):
+#             if (next_location, next_direction) not in came_from:
+#                 came_from[(next_location, next_direction)] = [(current_location, current_direction)]
+#             else:
+#                 came_from[(next_location, next_direction)].append((current_location, current_direction))
+#
+#             frontier.put((next_location, next_direction))
 
+
+    # return paths
 def traverse_grid(start_location, end_location):
     frontier = queue.Queue()
     frontier.put((start_location, None))
@@ -104,8 +122,8 @@ def j2c(p):
     return int(np.real(p)), int(np.imag(p))
 
 filename = '2024_day16/test_input1.txt'
-# filename = '2024_day15/test_input2.txt'
-# filename = '2024_day15/input.txt'
+# filename = '2024_day16/test_input2.txt'
+# filename = '2024_day16/input.txt'
 with open(filename) as f_in:
     lines = f_in.readlines()
 
@@ -119,4 +137,15 @@ show_map(start, end, boundaries)
 
 paths = traverse_grid(start, end)
 for path in paths:
-    show_map(start, end, boundaries, path )
+    # show_map(start, end, boundaries, path )
+    score = 0
+    previous_direction = path[0][1]
+    for current_node, current_direction in path:
+        score += 1
+        if previous_direction != current_direction:
+            score += 1000
+        previous_direction = current_direction
+    score -= 1
+    print(score)
+
+# 153544 too high
