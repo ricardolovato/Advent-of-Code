@@ -69,6 +69,9 @@ def traverse_grid(start, end, boundaries):
                 came_from[adjacent] = current
                 frontier.put(adjacent)
 
+    if end not in came_from:
+        return None
+
     path = [end]
     position = end
     while position != start:
@@ -76,9 +79,9 @@ def traverse_grid(start, end, boundaries):
         path.append(position)
     return path
 
-filename = '2024_day18/test_input1.txt'
-grid_shape = (7, 7)
-end_byte = 12
+# filename = '2024_day18/test_input1.txt'
+# grid_shape = (7, 7)
+# end_byte = 12
 
 filename = '2024_day18/input.txt'
 grid_shape = (71, 71)
@@ -96,4 +99,25 @@ path = traverse_grid(start, end, boundaries)
 show_map(start, end, boundaries, path)
 print(len(path) - 1)
 
-# 104 too low
+# Part 2 - binary search
+boundaries = [int(imag) + 1j*int(real)  for line in lines for real, imag in [line.strip().split(',')]]
+path = []
+L = end_byte
+R = len(boundaries)-1
+while L != R:
+    bounds_idx = (L + R) // 2
+    print(f'L: {L}, R: {R}, bounds_idx: {bounds_idx}\t', end = '')
+    current_bounds = boundaries[0:bounds_idx ]
+    path = traverse_grid(start, end, current_bounds)
+
+    if path is None:
+        print(f'--> no path')
+        # Too big: search backwards
+        R = bounds_idx - 1
+    else:
+        print(f'--> yes path')
+        L = bounds_idx + 1
+bounds_idx = (L + R) // 2
+print(f'bounds_idx: {bounds_idx} -> {lines[bounds_idx - 1]}')
+
+# 2,12 wrong
