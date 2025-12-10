@@ -1,6 +1,7 @@
 import numpy as np 
 
 filename = '2025_day09/test_input.txt'
+# filename = '2025_day09/test_input2.txt'
 # filename = '2025_day09/input.txt'
 with open(filename) as f_in:
     lines = f_in.readlines()
@@ -42,47 +43,69 @@ for idx in range(len(locations)-1):
             outer_edges.append([i, locations[idx][1]])
 
 all_points = locations + outer_edges
+all_points = set(p[0] + 1j * p[1] for p in all_points)
+
+def find_inner_points(point, visited = None):
+    if visited is None:
+        visited = set()
+
+    visited.add(point)
+
+    for direction in [1, 1j, -1, -1j]:
+        next_point = point + direction
+        if next_point not in all_points and next_point not in visited:
+            
+            visited = find_inner_points(next_point, visited)
+    return visited
+
+inner_points = find_inner_points(3+4j)
+
 
 # Inner fill
-inner_points = []
+buff = 4
+# inner_points = []
 max_x, max_y = [max([loc[i] for loc in locations]) for i in range(2)]
-for ix in range(0, max_x + 2):
-    b_cross = False
-    for jy in range(0, max_y + 4):
-        if [ix, jy] in all_points and [ix, jy - 1] in all_points and [ix, jy + 1] not in all_points:
-            b_cross = False
-            continue
+# for ix in range(0, max_x + buff):
+#     jy = 0
+#     while jy < max_y + buff:
+#         if [ix, jy] in all_points:
+#             # Scan edge points until we hit a non-edge (horiz lines)
+#             print(f'found edge at {ix},{jy}')
+#             while [ix, jy] in all_points:
+#                 print(f'   skipping {ix}, {jy} -> ')
+#                 jy += 1
+#             print(f'ending at {ix}, {jy}')
 
-        if [ix, jy] in all_points and [ix, jy-1] not in all_points:
-            if not b_cross:
-                # Enter the curve
-                b_cross = True
-                print(f'Entering curve at {ix}, {jy}')
-            else:
-                # Exit curve
-                b_cross = False
-                print(f'Exiting curve at {ix}, {jy}')
-
-        if b_cross:
-            # Inside the curve
-            inner_points.append([ix, jy])
-
+#             # Scan to the end of the line or until we hit another wall 
+#             jy_skip = jy
+#             temp_pts = []
+#             while [ix, jy_skip] not in all_points and jy_skip < max_y + buff:
+#                 temp_pts.append([ix, jy_skip])
+#                 jy_skip += 1
+#             if jy_skip == max_y + buff:
+#                 # If we hit the end of the line, these are not inner pts
+#                 jy = jy_skip 
+#             else:
+#                 # If we hit another wall, these were inner points 
+#                 inner_points = inner_points + temp_pts
+        
+#         jy += 1
 
 max_x, max_y = [max([loc[i] for loc in locations]) for i in range(2)]
 print(f'\t', end = '')
-for jy in range(0, max_y + 4):
+for jy in range(0, max_y + buff):
     print(f'{jy} ', end='')
 print()
-for ix in range(0, max_x + 2):
+for ix in range(0, max_x + buff):
     print(f'{ix}\t', end = '')
-    for jy in range(0, max_y + 4):
-        if [ix, jy] in all_points:
+    for jy in range(0, max_y + buff):
+        if [ix, jy] in locations:
+            print('# ', end = '')
+        elif ix + 1j*jy in all_points:
             print('@ ', end = '')
-        # if [ix, jy] in locations:
-        #     print('#', end = '')
         # elif [ix, jy] in outer_edges:
-        #     print('X', end = '')
-        elif [ix, jy] in inner_points:
+        #     print('X ', end = '')
+        elif ix + 1j*jy in inner_points:
             print('O ', end = '')
         else:
             print('. ', end = '')
