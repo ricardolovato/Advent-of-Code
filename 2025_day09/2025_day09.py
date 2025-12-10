@@ -1,8 +1,35 @@
 import numpy as np 
 
+def print_grid():
+    buff = 4
+    max_x, max_y = [max([loc[i] for loc in locations]) for i in range(2)]
+    print(f'\t', end = '')
+    for jy in range(0, max_y + buff):
+        print(f'{jy} ', end='')
+    print()
+    for ix in range(0, max_x + buff):
+        print(f'{ix}\t', end = '')
+        for jy in range(0, max_y + buff):
+            if ix + 1j * jy in red_tiles:
+                print('# ', end = '')
+            elif ix + 1j * jy in green_tiles:
+                print('X ', end = '')
+            # if [ix, jy] in locations:
+            #     print('# ', end = '')
+            # elif ix + 1j*jy in all_points:
+            #     print('@ ', end = '')
+            # # elif [ix, jy] in outer_edges:
+            # #     print('X ', end = '')
+            # elif ix + 1j*jy in inner_points:
+            #     print('O ', end = '')
+            else:
+                print('. ', end = '')
+        print()
+
+
 filename = '2025_day09/test_input.txt'
 # filename = '2025_day09/test_input2.txt'
-# filename = '2025_day09/input.txt'
+filename = '2025_day09/input.txt'
 with open(filename) as f_in:
     lines = f_in.readlines()
 
@@ -18,7 +45,6 @@ for i in range(0, int(len(locations)/2)):
         rect = (abs(locations[j][0] - locations[i][0]) + 1) * (abs(locations[j][1] - locations[i][1]) + 1)
         if rect > max_area[2]:
             max_area = [locations[i], locations[j], rect]
-        # print(f'{locations[i]} | {locations[j]} -> {rect}')
 # Part 1: this seems to work 
 print(max_area)
 
@@ -58,55 +84,50 @@ def find_inner_points(point, visited = None):
             visited = find_inner_points(next_point, visited)
     return visited
 
-inner_points = find_inner_points(3+4j)
+# Find an inner point
+def first_inner_pt(locations, all_points):
+    max_x, max_y = [max([loc[i] for loc in locations]) for i in range(2)]
+    for ix in range(0, max_x):
+        for jy in range(0, max_y):
+            pt = ix + 1j * jy
+            if pt not in all_points and pt - 1j in all_points and pt - 1 in all_points:
+                return pt
+
+inner_points = find_inner_points(first_inner_pt(locations, all_points))
+
+# Inner points and edges, excluding the given corner points 
+# green_tiles = set(inner_points)
+# for point in outer_edges:
+#     green_tiles.add(point[0] + 1j * point[1])
+green_tiles = inner_points | {p[0] + 1j * p[1] for p in outer_edges}
+red_tiles = {p[0] + 1j * p[1] for p in locations}
+
+# Check if the area is continuous 
+def valid_location(p1, p2, all_tiles):
+    min_x, max_x = [int(func(p1.real, p2.real)) for func in [min, max]]
+    min_y, max_y = [int(func(p1.imag, p2.imag)) for func in [min, max]]
+    for ix in range(min_x, max_x):
+        for jy in range(min_y, max_y):
+            pt = ix + 1j * jy
+            if pt not in all_tiles:
+                return False
+    return True 
 
 
-# Inner fill
-buff = 4
-# inner_points = []
-max_x, max_y = [max([loc[i] for loc in locations]) for i in range(2)]
-# for ix in range(0, max_x + buff):
-#     jy = 0
-#     while jy < max_y + buff:
-#         if [ix, jy] in all_points:
-#             # Scan edge points until we hit a non-edge (horiz lines)
-#             print(f'found edge at {ix},{jy}')
-#             while [ix, jy] in all_points:
-#                 print(f'   skipping {ix}, {jy} -> ')
-#                 jy += 1
-#             print(f'ending at {ix}, {jy}')
-
-#             # Scan to the end of the line or until we hit another wall 
-#             jy_skip = jy
-#             temp_pts = []
-#             while [ix, jy_skip] not in all_points and jy_skip < max_y + buff:
-#                 temp_pts.append([ix, jy_skip])
-#                 jy_skip += 1
-#             if jy_skip == max_y + buff:
-#                 # If we hit the end of the line, these are not inner pts
-#                 jy = jy_skip 
-#             else:
-#                 # If we hit another wall, these were inner points 
-#                 inner_points = inner_points + temp_pts
+all_tiles = green_tiles | red_tiles
+max_area = [None, None, 0]
+for p1 in red_tiles:
+    for p2 in red_tiles:
+        if p1 == p2: 
+            continue
         
-#         jy += 1
+        if not valid_location(p1, p2, all_tiles):
+            continue 
 
-max_x, max_y = [max([loc[i] for loc in locations]) for i in range(2)]
-print(f'\t', end = '')
-for jy in range(0, max_y + buff):
-    print(f'{jy} ', end='')
-print()
-for ix in range(0, max_x + buff):
-    print(f'{ix}\t', end = '')
-    for jy in range(0, max_y + buff):
-        if [ix, jy] in locations:
-            print('# ', end = '')
-        elif ix + 1j*jy in all_points:
-            print('@ ', end = '')
-        # elif [ix, jy] in outer_edges:
-        #     print('X ', end = '')
-        elif ix + 1j*jy in inner_points:
-            print('O ', end = '')
-        else:
-            print('. ', end = '')
-    print()
+        rect = (abs(p1.real - p2.real) + 1) * (abs(p1.imag - p2.imag) + 1)
+        if rect > max_area[2]:
+            max_area = [p1, p2, rect]
+
+print(max_area)
+
+# print_grid()
