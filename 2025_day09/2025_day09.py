@@ -24,16 +24,66 @@ print(max_area)
 # Part 2
 locations = [[int(_v) for _v in v.strip().split(',')] for v in lines]
 
-# Straight line connections
+# Outer Edges
 locations = locations + [locations[0]]
-for idx in 
+outer_edges = []
+for idx in range(len(locations)-1):
+    next_idx = idx + 1
+    if locations[idx][0] == locations[next_idx][0]:
+        # same x
+        min_y = min(locations[idx][1], locations[next_idx][1])
+        max_y = max(locations[idx][1], locations[next_idx][1])
+        for i in range(min_y, max_y):
+            outer_edges.append([locations[idx][0], i])
+    elif locations[idx][1] == locations[next_idx][1]:
+        min_x = min(locations[idx][0], locations[next_idx][0])
+        max_x = max(locations[idx][0], locations[next_idx][0])
+        for i in range(min_x, max_x):
+            outer_edges.append([i, locations[idx][1]])
 
+all_points = locations + outer_edges
+
+# Inner fill
+inner_points = []
 max_x, max_y = [max([loc[i] for loc in locations]) for i in range(2)]
 for ix in range(0, max_x + 2):
-    for jy in range(0, max_y + 2):
-        if [ix, jy] in locations:
-            # print(f'{ix}, {jy}')
-            print('#', end = '')
+    b_cross = False
+    for jy in range(0, max_y + 4):
+        if [ix, jy] in all_points and [ix, jy - 1] in all_points and [ix, jy + 1] not in all_points:
+            b_cross = False
+            continue
+
+        if [ix, jy] in all_points and [ix, jy-1] not in all_points:
+            if not b_cross:
+                # Enter the curve
+                b_cross = True
+                print(f'Entering curve at {ix}, {jy}')
+            else:
+                # Exit curve
+                b_cross = False
+                print(f'Exiting curve at {ix}, {jy}')
+
+        if b_cross:
+            # Inside the curve
+            inner_points.append([ix, jy])
+
+
+max_x, max_y = [max([loc[i] for loc in locations]) for i in range(2)]
+print(f'\t', end = '')
+for jy in range(0, max_y + 4):
+    print(f'{jy} ', end='')
+print()
+for ix in range(0, max_x + 2):
+    print(f'{ix}\t', end = '')
+    for jy in range(0, max_y + 4):
+        if [ix, jy] in all_points:
+            print('@ ', end = '')
+        # if [ix, jy] in locations:
+        #     print('#', end = '')
+        # elif [ix, jy] in outer_edges:
+        #     print('X', end = '')
+        elif [ix, jy] in inner_points:
+            print('O ', end = '')
         else:
-            print('.', end = '')
+            print('. ', end = '')
     print()
